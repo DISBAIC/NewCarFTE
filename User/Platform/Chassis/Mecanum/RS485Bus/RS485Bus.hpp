@@ -5,10 +5,10 @@
 #ifndef RS485BUS_HPP
 #define RS485BUS_HPP
 
+#include "Config/Config.hpp"
 #include "Modules/StepMotor/Connect/Serial/Serial.hpp"
 #include "Platform/Chassis/MoveTasks.hpp"
 #include "Platform/Chassis/Mecanum/MecanumU.hpp"
-#include "Peripheral/Uart.hpp"
 #include "Modules/RS485/rs485.hpp"
 
 #include <type_traits>
@@ -19,6 +19,9 @@ namespace Platform::Chassis {
     template<>
     class MecanumChassis<RS485Bus> {
     public:
+
+        void VerifyReached();
+
         using CPin = Modules::RS485::CPin;
 
         static void Create(const uint8_t *_addrs, const Peripheral::Uart<Peripheral::Interrupt> *_bus,CPin _pin, const uint8_t _cent,
@@ -41,16 +44,50 @@ namespace Platform::Chassis {
             return false;
         }
 
-        bool  RunTask(const MoveDirection _dir, const double _distance, const uint16_t _checkCount) const {
+        bool RunTask(const MoveDirection _dir, const double _distance, const uint16_t _checkCount = 0) const {
             moveAction(_dir, _distance);
             return WaitForStop(_checkCount);
         }
 
-        void RunTask(const MoveDirection _dir, const double _distance) const {
+        void RunTaskInt(const MoveDirection _dir, const double _distance) {
+            moveAction(_dir, _distance);
+            isMoving = true;
+            WaitForStopInt();
+
+        }
+
+        void RunTaskNoCheck(const MoveDirection _dir, const double _distance) const {
             moveAction(_dir, _distance);
         }
 
-        [[nodiscard]] bool WaitForStop(uint16_t _checkCount) const;
+        [[nodiscard]] bool WaitForStop(uint16_t _checkCount = 0) const;
+
+        void WaitForStopInt();
+
+        void RunTaskTime(const MoveDirection _dir, const double _distance) {
+            const auto moveInfos = moveAction(_dir, _distance);
+            const auto acceleration = (double)moveInfos.acceleration / 60.0;
+            const auto velocity = (double)moveInfos.velocity / 60.0;
+            auto cycles = (double)moveInfos.distance / this->cent;
+            if (is18Angle) {
+                cycles = cycles / 200.0;
+            } 
+            else {
+                cycles = cycles / 400.0;
+            }
+            auto aTime = velocity / acceleration;
+            auto aDistance = acceleration * aTime * aTime;
+            auto vTime = (cycles - aDistance) / velocity;
+            auto totalTime = aTime + vTime;
+            if (totalTime < 0) {
+                totalTime = 0;
+            }
+            Delay(totalTime * 1000.0 + 500);
+        }
+
+        bool IsMoving() const {
+            return isMoving;
+        }
 
     private:
         const CPin flowControlPin;
@@ -76,6 +113,8 @@ namespace Platform::Chassis {
 
         const double motorDistance;
 
+        mutable uint8_t cent;
+
         struct MoveInfos {
             uint8_t acceleration;
             uint16_t velocity;
@@ -89,7 +128,7 @@ namespace Platform::Chassis {
                                                        bus(_bus), is18Angle(_is18Angle), radius(_radius),motorDistance(_motorDistance) {
             setDirection(_dirs);
             setCent(_cent);
-            targetPluses = 0;
+            isMoving = false;
         }
 
         static void setDirection(const bool *_dirs);
@@ -118,13 +157,14 @@ namespace Platform::Chassis {
 
         void setCent(uint8_t _cent) const;
 
-        void moveAction(MoveDirection _direction, double _distance) const;
+        MoveInfos moveAction(MoveDirection _direction, double _distance) const;
 
         void allClear() const;
 
         [[nodiscard]] MoveInfos getMoveInfos(double _distance, double _factor) const;
 
-        mutable uint32_t targetPluses;
+        bool isMoving;
+
     };
 }
 

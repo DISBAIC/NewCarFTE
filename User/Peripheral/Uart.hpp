@@ -10,9 +10,6 @@
 
 namespace Peripheral {
 #ifdef HAL_UART_MODULE_ENABLED
-
-    using UartCallBack = void();
-
     template<UPMode _mode>
     struct Uart;
 
@@ -52,7 +49,7 @@ namespace Peripheral {
         void ReceiveIT(uint8_t *_buffer, const uint16_t _size) const {
             HAL_UART_Receive_IT(handle, _buffer, _size);
         }
-        void ReceiveIdleIT(uint8_t *_buffer, const uint16_t _size = 32) const {
+        void ReceiveIdleIT(uint8_t *_buffer, const uint16_t _size) const {
             HAL_UARTEx_ReceiveToIdle_IT(handle, _buffer, _size);
         }
         void AbortReceiveIT() const {
@@ -64,7 +61,6 @@ namespace Peripheral {
     struct Uart<DMA> : Uart<Normal> {
         explicit Uart(UART_HandleTypeDef *_port): Uart<Normal>(_port) {
         }
-
         void SendDMA(const uint8_t *_buffer, const uint16_t _size) const {
             HAL_UART_Transmit_DMA(handle, _buffer, _size);
         }

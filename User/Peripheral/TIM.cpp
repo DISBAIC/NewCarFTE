@@ -28,6 +28,9 @@ void Peripheral::PwmChannel<Peripheral::Normal>::SetDutyCycle(float _dutyCycle) 
 }
 
 void Peripheral::PwmChannel<Peripheral::Normal>::SetCompare(const uint32_t _compare) const {
+    if (_compare > handle->Instance->ARR) {
+        return; // 超出范围
+    }
     switch (channel) {
         case TIM_CHANNEL_1:
             handle->Instance->CCR1 = _compare;

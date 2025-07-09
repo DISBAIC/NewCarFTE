@@ -17,6 +17,10 @@
 #include "stm32f4xx_hal.h"
 #endif
 
+#ifdef STM32F407xx
+#include "stm32f4xx_hal.h"
+#endif
+
 
 #if CMSIS_RTOS
 #include "cmsis_os2.h"
