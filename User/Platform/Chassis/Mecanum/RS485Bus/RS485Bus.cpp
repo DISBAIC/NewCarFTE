@@ -5,7 +5,7 @@
 #include "RS485Bus.hpp"
 
 #include "Modules/StepMotor/PluseIO/PlusesIO.hpp"
-#include <cmath>
+#include "cmath"
 #include "stm32f4xx_hal_uart.h"
 #include "usart.h"
 #include <cstdint>
@@ -233,7 +233,6 @@ namespace Platform::Chassis
         rbMotor.ClearAngle();
     }
 
-
     thisClass::MoveInfos thisClass::getMoveInfos(const double _distance, const double _factor) const
     {
         const double centTemp    = cent;
@@ -281,7 +280,7 @@ namespace Platform::Chassis
             bus->AbortReceiveIT();
             bus->Send(data, 3);
             ReceiveEnable();
-            bus->Receive(receive[0], resultLength,100);
+            bus->Receive(receive[0], resultLength, 100);
             result[0] &= receive[0][0] == lfMotor.GetAddress();
             result[0] &= receive[0][1] == 0X3A;
             result[0] &= (receive[0][2] & 0x02) == 0X02;
@@ -294,7 +293,7 @@ namespace Platform::Chassis
             bus->AbortReceiveIT();
             bus->Send(data, 3);
             ReceiveEnable();
-            bus->Receive(receive[1], resultLength,100);
+            bus->Receive(receive[1], resultLength, 100);
             result[1] &= receive[1][0] == rfMotor.GetAddress();
             result[1] &= receive[1][1] == 0X3A;
             result[1] &= (receive[1][2] & 0x02) == 0X02;
@@ -307,7 +306,7 @@ namespace Platform::Chassis
             bus->AbortReceiveIT();
             bus->Send(data, 3);
             ReceiveEnable();
-            bus->Receive(receive[2], resultLength,100);
+            bus->Receive(receive[2], resultLength, 100);
             result[2] &= receive[2][0] == lbMotor.GetAddress();
             result[2] &= receive[2][1] == 0X3A;
             result[2] &= (receive[2][2] & 0x02) == 0X02;
@@ -320,7 +319,7 @@ namespace Platform::Chassis
             bus->AbortReceiveIT();
             bus->Send(data, 3);
             ReceiveEnable();
-            bus->Receive(receive[3], resultLength,100);
+            bus->Receive(receive[3], resultLength, 100);
             result[3] &= receive[3][0] == rbMotor.GetAddress();
             result[3] &= receive[3][1] == 0X3A;
             result[3] &= (receive[3][2] & 0x02) == 0X02;
@@ -357,11 +356,14 @@ namespace Platform::Chassis
 
     void MecanumChassis<RS485Bus>::WaitForStopInt()
     {
+        for (auto &i : verifyBuffer) {
+            i = 0;
+        }
         ReceiveEnable();
-        bus->ReceiveIdleIT(verifyBuffer,32);
-        //HAL_UARTEx_ReceiveToIdle_IT(&huart5, verifyBuffer, 32);
-        while(isMoving);
-        //HAL_UART_AbortReceive_IT(&huart5);
-        bus->AbortReceiveIT();
+        bus->ReceiveDMA(verifyBuffer, 1024);
+        while (!(verifyBuffer[1] == 0xFD &&
+               verifyBuffer[2] == 0x9F &&
+               verifyBuffer[3] == 0x6B));
+        isMoving = false;
     }
 }

@@ -34,7 +34,7 @@ namespace Peripheral {
     };
 
     template<>
-    struct Uart<Interrupt> : Uart<Normal> {
+    struct Uart<Interrupt> : public Uart<Normal> {
         explicit Uart(UART_HandleTypeDef *_handle): Uart<Normal>(_handle) {
         }
 
@@ -58,8 +58,8 @@ namespace Peripheral {
     };
 
     template<>
-    struct Uart<DMA> : Uart<Normal> {
-        explicit Uart(UART_HandleTypeDef *_port): Uart<Normal>(_port) {
+    struct Uart<DMA> : public Uart<Interrupt> {
+        explicit Uart(UART_HandleTypeDef *_port): Uart<Interrupt>(_port) {
         }
         void SendDMA(const uint8_t *_buffer, const uint16_t _size) const {
             HAL_UART_Transmit_DMA(handle, _buffer, _size);

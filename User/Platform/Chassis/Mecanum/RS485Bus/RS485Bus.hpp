@@ -24,7 +24,7 @@ namespace Platform::Chassis {
 
         using CPin = Modules::RS485::CPin;
 
-        static void Create(const uint8_t *_addrs, const Peripheral::Uart<Peripheral::Interrupt> *_bus,CPin _pin, const uint8_t _cent,
+        static void Create(const uint8_t *_addrs, const Peripheral::Uart<Peripheral::DMA> *_bus,CPin _pin, const uint8_t _cent,
                            const bool *_dirs, const bool _is18Angle, const double _radius,const double _motorDsitance) {
             static MecanumChassis instance(_bus,_pin, _addrs, _dirs, _cent, _is18Angle, _radius,_motorDsitance);
             MCRSBPtr = &instance;
@@ -53,7 +53,6 @@ namespace Platform::Chassis {
             moveAction(_dir, _distance);
             isMoving = true;
             WaitForStopInt();
-
         }
 
         void RunTaskNoCheck(const MoveDirection _dir, const double _distance) const {
@@ -105,7 +104,7 @@ namespace Platform::Chassis {
         const Modules::StepMotor<Modules::Serial> lbMotor;
         const Modules::StepMotor<Modules::Serial> rbMotor;
 
-        const Peripheral::Uart<Peripheral::Interrupt> *bus;
+        const Peripheral::Uart<Peripheral::DMA> *bus;
 
         bool is18Angle;
 
@@ -121,7 +120,7 @@ namespace Platform::Chassis {
             uint32_t distance;
         };
 
-        explicit MecanumChassis(const Peripheral::Uart<Peripheral::Interrupt> *_bus,CPin _pin, const uint8_t *_addrs,
+        explicit MecanumChassis(const Peripheral::Uart<Peripheral::DMA> *_bus,CPin _pin, const uint8_t *_addrs,
                                 const bool *_dirs, const uint8_t _cent, const bool _is18Angle,
                                 const double _radius,const double _motorDistance) : flowControlPin(_pin), lfMotor(_bus, _addrs[0]),
                                                        rfMotor(_bus, _addrs[1]), lbMotor(_bus, _addrs[2]),rbMotor(_bus, _addrs[3]),

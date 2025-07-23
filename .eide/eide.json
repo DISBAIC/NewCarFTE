@@ -26,7 +26,8 @@
   "targets": {
     "NewCarFT": {
       "excludeList": [
-        "<virtual_root>/Application/MDK-ARM"
+        "<virtual_root>/Application/MDK-ARM",
+        "<virtual_root>/4"
       ],
       "toolchain": "GCC",
       "compileConfig": {

@@ -11,6 +11,8 @@
 #include "Platform/Chassis/ChassisU.hpp"
 #include "Platform/Chassis/Mecanum/RS485Bus/RS485Bus.hpp"
 
+#include "stm32f4xx_hal_uart.h"
+#include "sys/_intsup.h"
 #include "tim.h"
 #include "usart.h"
 
@@ -22,7 +24,7 @@ using namespace Peripheral;
 using mv = Platform::Chassis::MoveDirection;
 using namespace Platform::Chassis;
 
-const Uart<Interrupt> bus(&huart5);
+const Uart<DMA> bus(&huart5);
 const Uart<Interrupt> dataPort(&huart1);
 const Uart<Normal> vision(&huart3);
 const Uart<Normal> debugPort(&huart6);
@@ -76,8 +78,9 @@ extern "C" [[noreturn]] void Init()
 
     //Platform::Chassis::MCRSBPtr->RunTask(mv::Forward, 10, 500);
 #endif
+
     for (;;) {
-        while (Task::GetIsMoving()) {
+        while (!Task::GetIsMoving()) {
             Task::ReceiveBuffer();
         }
         for (uint32_t i = 0; i < Task::taskSize; i++) {
@@ -88,6 +91,7 @@ extern "C" [[noreturn]] void Init()
             else {
                 auto [direction,distance] = Task::tasks[i].content.move;
                 MCRSBPtr->RunTaskTime(direction, distance);
+                dataPort.Send("S",1);
             }
         }
         Task::TaskClear();

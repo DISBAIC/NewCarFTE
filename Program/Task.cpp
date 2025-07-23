@@ -49,18 +49,21 @@ namespace Task
             isMoving = true;
             char bufferx[64];
             sprintf(bufferx, "Received %u tasks\n", taskSize);
-            dataPort.Send(bufferx, strlen(bufferx));
+            //dataPort.Send(bufferx, strlen(bufferx));
         } else {
-            dataPort.Send("Error: No valid task received.\n", 30);
+            //dataPort.Send("Error: No valid task received.\n", 30);
         }
         for (auto &i : buffer) {
             i = 0;
         }
     }
 
-    void JetWater(int _duration)
+    void JetWater(int _duration,int _percent)
     {
-        pump.SetDutyCycle(0.5);
+        if (_percent > 100 || _percent < 0) {
+            _percent = 50; // 默认值
+        }
+        pump.SetDutyCycle(_percent / 100.0);
         Delay(_duration);
         pump.SetDutyCycle(0.0);
     }

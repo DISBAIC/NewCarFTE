@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-extern const Peripheral::Uart<Peripheral::Interrupt> bus;
+extern const Peripheral::Uart<Peripheral::DMA> bus;
 extern const Peripheral::Uart<Peripheral::Interrupt> dataPort;
 extern const Peripheral::Uart<Peripheral::Normal> vision;
 extern const Peripheral::Uart<Peripheral::Normal> debugPort;

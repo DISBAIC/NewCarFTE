@@ -31,7 +31,7 @@ namespace Task
 
     extern unsigned int taskSize;
 
-    void JetWater(int _duration);
+    void JetWater(int _duration,int _percent = 50);
 
     void TaskClear();
 
