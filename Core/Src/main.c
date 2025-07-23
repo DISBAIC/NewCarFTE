@@ -101,8 +101,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
   //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
-  void Init(void);
-  Init();
+  void Main(void);
+  Main();
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -34,4 +34,15 @@ inline void Delay(uint32_t _ticks) {
 #endif
 }
 
+
+namespace Config {
+
+    enum TimeResult {
+        TimeOut = 0,
+        Success = 1,
+        Error   = 2
+    };
+
+}
+
 #endif //CONFIG_HPP

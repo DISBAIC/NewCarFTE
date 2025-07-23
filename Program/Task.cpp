@@ -37,9 +37,6 @@ namespace Task
                 } else if (buffer[i + 1] == NegRotate) {
                     tasks[taskSize].content.move.direction = Platform::Chassis::MoveDirection::Rotate;
                     tasks[taskSize].content.move.distance  = -tasks[taskSize].content.move.distance; // 反向旋转
-                } else if (buffer[i + 1] == Inject) {
-                    tasks[taskSize].type                   = TaskType::Inject;
-                    tasks[taskSize].content.injectDuration = buffer[i + 2] * 256 + buffer[i + 3];
                 }
                 taskSize++;
                 i += 4;
@@ -64,7 +61,9 @@ namespace Task
             _percent = 50; // 默认值
         }
         pump.SetDutyCycle(_percent / 100.0);
+        pump.Start();
         Delay(_duration);
+        pump.Stop();
         pump.SetDutyCycle(0.0);
     }
 

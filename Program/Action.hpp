@@ -1,0 +1,2 @@
+void AimFire();
+void ServoReset();

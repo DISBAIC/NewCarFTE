@@ -8,7 +8,7 @@
 void Peripheral::PwmChannel<Peripheral::Normal>::SetDutyCycle(float _dutyCycle) const {
     if (_dutyCycle > 1.0f) _dutyCycle = 1.0f;
     if (_dutyCycle < 0.0f) _dutyCycle = 0.0f;
-    const auto compare = static_cast<float>(handle->Instance->ARR+1);
+    const auto compare = handle->Instance->ARR;
     switch (channel) {
         case TIM_CHANNEL_1:
             handle->Instance->CCR1 = static_cast<uint32_t>(_dutyCycle * compare);
