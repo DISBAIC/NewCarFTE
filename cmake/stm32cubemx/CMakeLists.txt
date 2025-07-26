@@ -28,6 +28,7 @@ set(MX_Application_Src
     ${CMAKE_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_SOURCE_DIR}/Core/Src/syscalls.c
     ${CMAKE_SOURCE_DIR}/startup_stm32f405xx.s
+		${CMAKE_SOURCE_DIR}/Core/Src/dma.c
 )
 
 # STM32 HAL/LL Drivers

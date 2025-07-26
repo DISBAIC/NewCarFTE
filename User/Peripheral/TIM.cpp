@@ -62,6 +62,7 @@ uint32_t Peripheral::PwmChannel<Peripheral::Normal>::GetCompare() const {
         default:
             break;
     }
+		return 0;
 }
 
 #endif

@@ -27,9 +27,11 @@ enum {
 
     yawStandard   = 600,
     pitchLower    = 500,
-    pitchStandard = 500,
+    pitchStandard = 600,
 
-    pitchLowest = 550, //40% 
+    pitchLowest = 400,
+
+
     plS = 230,
     plH = 403,
 

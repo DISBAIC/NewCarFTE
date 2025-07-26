@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <stdint.h>
+#include <cstdint>
 
 using namespace Peripheral;
 using namespace Platform::Chassis;
@@ -33,9 +33,11 @@ const PwmChannel<Normal> yaw(&htim3, TIM_CHANNEL_3);
 const PwmChannel<Normal> pump(&htim5, TIM_CHANNEL_1);
 const Timer<Interrupt> timer(&htim1);
 
+static const GPIOPin<Output> flowControlPin(GPIOB, GPIO_PIN_3);
+
 void Init()
 {
-    static GPIOPin<Output> flowControlPin(GPIOB, GPIO_PIN_3);
+
     flowControlPin.Write(false);
 
     HAL_Delay(2000);
@@ -51,8 +53,6 @@ void Init()
     pump.SetCompare(0);
 
     ServoReset();
-
-    // WaitForConnect();
     timer.StartIT();
     MecanumChassis<Platform::Chassis::RS485Bus>::Create(
         address, &bus, flowControlPin, 16, dirs, true, 37.5, 135.3);
@@ -73,7 +73,9 @@ extern "C" [[noreturn]] void Main()
 
     //Platform::Chassis::MCRSBPtr->RunTask(mv::Forward, 10, 500);
 #endif
-    
+
+    //start 500 307
+    //end 762-158 576
 
     for (;;) {
         while (!Task::GetIsMoving()) {
@@ -86,6 +88,9 @@ extern "C" [[noreturn]] void Main()
         }
         Task::TaskClear();
         AimFire();
+        HAL_Delay(5000);
+        dataPort.Send("W",1);
         // dataPort.ReceiveIdleIT(buffer, 1024);
     }
+
 }

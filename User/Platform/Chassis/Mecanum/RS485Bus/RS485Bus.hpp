@@ -33,17 +33,6 @@ namespace Platform::Chassis {
 
         static void SetRotateFixFactor(double _factor);
 
-        template<typename Func, typename... Args>
-            requires std::is_invocable_r_v<bool, Func>
-        bool RunTask(const MoveDirection _dir, const double _distance, const uint32_t _checkCount, Func func,
-                     Args... args) {
-            moveAction(_dir, _distance);
-            if (WaitForStop(_checkCount)) {
-                return func(args...);
-            }
-            return false;
-        }
-
         bool RunTask(const MoveDirection _dir, const double _distance, const uint16_t _checkCount = 0) const {
             moveAction(_dir, _distance);
             return WaitForStop(_checkCount);

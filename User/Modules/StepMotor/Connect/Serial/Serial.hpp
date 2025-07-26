@@ -31,7 +31,7 @@ class Modules::StepMotor<Modules::Serial> {
 
     using thisClass = StepMotor;
 
-    static void delay() { ::delay(5); }
+    static void delay() { ::delay(50); }
 
 public:
     explicit StepMotor(const Peripheral::Uart<Peripheral::Normal> *_uart, const uint8_t _addr) : uart(_uart),

@@ -1,15 +1,19 @@
-
 #include "Config/Config.hpp"
 #include "Platform/Chassis/Mecanum/RS485Bus/RS485Bus.hpp"
 #include "Program.hpp"
 #include "Task.hpp"
 
+#include "action.hpp"
+
 #include <cmath>
+#include <numbers>
+#include <ext/concurrence.h>
 
 using namespace Platform::Chassis;
 using mv = Platform::Chassis::MoveDirection;
 
 static Point points[4]{};
+bool HasReceived = false;
 static constexpr double angleToPixel = 25.6;
 uint8_t buffer[2 * packetSize - 1];
 
@@ -18,22 +22,20 @@ void ServoReset() {
     pitch.SetCompare(pitchStandard);
 }
 
-namespace ActionConstValue
-{
-
+namespace ActionConstValue {
     // 14 - 500
     // 39 - 800
     // ImageWidth from -14 to 39
 
     constexpr double rightBorderAngle = -14.0;
-    constexpr double midAngle         = 22.5;
-    constexpr double leftBorderAngle  = 29.0;
+    constexpr double midAngle = 22.5;
+    constexpr double leftBorderAngle = 29.0;
 
     constexpr double servoRange = leftBorderAngle - rightBorderAngle;
 
-    constexpr double leftBorderLine  = 27.22;
+    constexpr double leftBorderLine = 27.22;
     constexpr double leftExternAngle = 81.21;
-    constexpr double leftInterAngle  = 61.26;
+    constexpr double leftInterAngle = 61.26;
 
     constexpr double viewLineWidth = 21.77;
 
@@ -41,19 +43,14 @@ namespace ActionConstValue
         // N-Negative A-Angle P-Positive
         NA14 = 500,
         PA29 = 707
-
     };
-
 } // namespace ActionConstValue
 
-static double cosineTheorem(double _angle, double _line1, double _line2)
-{
+static double cosineTheorem(double _angle, double _line1, double _line2) {
     return std::sqrt(_line1 * _line1 + _line2 * _line2 - 2 * _line1 * _line2 * std::cos(_angle));
 }
 
-static bool getFire()
-{
-
+static bool getFire() {
     /*
      *    0x54,
      *    0x01,P1x/256,P1x%256,P1y/256,P1y%256,
@@ -62,31 +59,34 @@ static bool getFire()
      *    0x04,P4x/256,P4x%256,P4y/256,P4y%256,
      *    0x45
      */
+    for (auto &i: buffer) {
+        i = 0;
+    }
 
-    for (int i = 0; i < 200; i++) {
-        vision.Receive(buffer, sizeof(buffer), 100);
-        for (uint16_t i = 0; i < packetSize; i++) {
-            if (buffer[i] == 0xff) {
+    for (int i = 0; i < 50; i++) {
+        vision.Receive(buffer, sizeof(buffer), 50);
+        for (uint16_t j = 0; j < packetSize; j++) {
+            if (buffer[j] == 0xff) {
                 return false;
             }
-            if (buffer[i] == 0x54 && buffer[i + packetSize - 1] == 0x45) {
-                if (buffer[i + 1] != 0x01) {
+            if (buffer[j] == 0x54 && buffer[j + packetSize - 1] == 0x45) {
+                if (buffer[j + 1] != 0x01) {
                     continue;
-                } else if (buffer[i + 6] != 0x02) {
+                } else if (buffer[j + 6] != 0x02) {
                     continue;
-                } else if (buffer[i + 11] != 0x03) {
+                } else if (buffer[j + 11] != 0x03) {
                     continue;
-                } else if (buffer[i + 16] != 0x04) {
+                } else if (buffer[j + 16] != 0x04) {
                     continue;
                 }
-                points[0].x = (buffer[i + 2] << 8) | buffer[i + 3];
-                points[0].y = (buffer[i + 4] << 8) | buffer[i + 5];
-                points[1].x = (buffer[i + 7] << 8) | buffer[i + 8];
-                points[1].y = (buffer[i + 9] << 8) | buffer[i + 10];
-                points[2].x = (buffer[i + 12] << 8) | buffer[i + 13];
-                points[2].y = (buffer[i + 14] << 8) | buffer[i + 15];
-                points[3].x = (buffer[i + 17] << 8) | buffer[i + 18];
-                points[3].y = (buffer[i + 19] << 8) | buffer[i + 20];
+                points[0].x = (buffer[j + 2] << 8) | buffer[j + 3];
+                points[0].y = (buffer[j + 4] << 8) | buffer[j + 5];
+                points[1].x = (buffer[j + 7] << 8) | buffer[j + 8];
+                points[1].y = (buffer[j + 9] << 8) | buffer[j + 10];
+                points[2].x = (buffer[j + 12] << 8) | buffer[j + 13];
+                points[2].y = (buffer[j + 14] << 8) | buffer[j + 15];
+                points[3].x = (buffer[j + 17] << 8) | buffer[j + 18];
+                points[3].y = (buffer[j + 19] << 8) | buffer[j + 20];
 
                 return true;
             }
@@ -96,85 +96,122 @@ static bool getFire()
     return false;
 }
 
-static void aim()
-{
+static void aim() {
     using namespace ActionConstValue;
-//
-    const auto center = (points[0].x + points[1].x + points[2].x + points[3].x) / 4.0;
-//
-    const auto line1 = center / imageWidth ;
-//
-    //const auto lineCast = cosineTheorem(leftExternAngle, line1, 27.22);
-//
-    //const auto angleView = line1 * std::sin(leftExternAngle) / lineCast;
-//
-    //const auto targetAngle = leftBorderAngle - angleView;
 
+    pitch.SetCompare(pitchStandard);
+    //
 
+    int times = 0;
+    bool pitchComplete = false;
 
-    const auto servoValue =  PA29 - line1 * (PA29 - NA14);
+    while (1) {
+        auto x = getFire();
+        if (!x) {
+            continue;
+        }
+        auto bottom = points[3].y;
+        auto center = points[0].x + points[1].x + points[2].x + points[3].x;
+        center /= 4;
 
-    const auto fireHeight = points[0].y - points[3].y;
-
-    const auto firePosition = fireHeight * 0.12;    
-
-    const auto screenPosition = points[3].y + firePosition;
-
-    const auto h1 = screenPosition - plS;
-    auto percent = h1/(float)(plH - plS);
-
-    if (percent < 0.0f) {
-        percent = 0.0f;
+        if (!pitchComplete) {
+            HAL_Delay(1000);
+            if (center >= yawStart && center <= yawEnd) {
+                if (times >= 2) {
+                } else {
+                    auto angle = (double) (yawStart - center) / (double) (yawEnd - yawStart);
+                    auto target = yawServoStart - yawServoEnd;
+                    target *= (int) angle;
+                    if (center > 384) {
+                        target += yawServoEnd;
+                    } else {
+                        target = yawServoStart - target;
+                    }
+                    yaw.SetCompare(target);
+                    times++;
+                }
+            }
+            if (bottom <= 350) {
+                if (pitch.GetCompare() >= pitchHighest) {
+                    pitch.SetCompare(pitchHighest);
+                    pitchComplete = true;
+                    continue;
+                }
+                pitch.SetCompare(pitch.GetCompare() + 10);
+                continue;
+            }
+            if (bottom >= 380) {
+                if (pitch.GetCompare() <= pitchLowest) {
+                    pitch.SetCompare(pitch.GetCompare() - 10);
+                    pitchComplete = true;
+                    continue;
+                }
+                pitch.SetCompare(pitch.GetCompare() - 10);
+                continue;
+            }
+            pitchComplete = true;
+        } else {
+            return;
+        }
     }
-    if (percent > 1.0f) {
-        percent = 1.0f;
-    }
 
-    yaw.SetCompare(int(servoValue));
-
-    pitch.SetCompare(int(pitchLower + (pitchHighest - pitchLower) * percent) * 0.9);
 
     Delay(2000);
 
-    Task::JetWater(2000,50);
+    //Task::JetWater(2000,50);
 
     Delay(2000);
 
     ServoReset();
 }
 
-void AimFire()
-{
+void auxAim() {
+    auto center = (points[0].x + points[1].x) / 2;
+    if (center <= yawStart) {
+        MCRSBPtr->RunTaskTime(mv::Rotate, -15.0);
+    } else if (center >= yawEnd) {
+        MCRSBPtr->RunTaskTime(mv::Rotate, 15.0);
+    }
+}
+
+void AimFire() {
     auto test = getFire();
     if (test) {
+        auxAim();
         aim();
+        Task::JetWater(2000, 50);
     } else {
         while (!test) {
             MCRSBPtr->RunTaskTime(mv::Rotate, -15.0);
             test = getFire();
             if (test) {
+                auxAim();
                 break;
             }
             MCRSBPtr->RunTaskTime(mv::Rotate, -15.0);
             test = getFire();
             if (test) {
+                auxAim();
                 break;
             }
 
             MCRSBPtr->RunTaskTime(mv::Rotate, 45);
             test = getFire();
             if (test) {
+                auxAim();
                 break;
             }
 
             MCRSBPtr->RunTaskTime(mv::Rotate, 15.0);
             test = getFire();
             if (test) {
+                auxAim();
                 break;
             }
 
             return;
         }
         aim();
+        Task::JetWater(2000, 50);
     }
 }
